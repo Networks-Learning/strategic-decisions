@@ -1,2 +1,2 @@
 # strategic-decisions
-Code for decision making under strategic behavior
+The code will be published soon.
