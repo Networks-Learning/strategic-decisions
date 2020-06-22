@@ -1,6 +1,6 @@
 # Decisions, Counterfactual Explanations and Strategic Behavior
 
-This repository contains the code and data used in the paper *Decisions, Counterfactual Explanations and Strategic Behavior*. The full version can be found [here](https://arxiv.org/abs/2002.04333).
+This repository contains the code and data used in the paper [Decisions, Counterfactual Explanations and Strategic Behavior](https://arxiv.org/abs/2002.04333).
 
 ## Dependencies
 
