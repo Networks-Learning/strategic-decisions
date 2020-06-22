@@ -1,0 +1,1 @@
+python -m lib.credit_utils  --data=data/original/credit_processed.csv  --output=data/processed/credit --njobs=5

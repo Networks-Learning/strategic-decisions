@@ -1,0 +1,5 @@
+Optimal accuracy: 0.8989774968789849
+Optimal classifier: LogisticRegression(max_iter=500, random_state=42)
+Optimal k: 400
+Total samples: 1266817
+Gamma: 0.9746666325676951
