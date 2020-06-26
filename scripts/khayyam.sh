@@ -9,7 +9,7 @@ do
   for j in {0..11}
   do
   if [ "$j" -lt "6" ]
-  then python -m lib.bruteforce --output=./Outputs/khayyam_bruteforce_m_${m[$j]}_sparsity_${sparsity[$j]}_seed_${seed[$i]} --m=${m[$j]} --sparsity=${sparsity[$j]} --seed=${seed[$i]} --gamma=$gamma
+  then python -m lib.bruteforce --output=./outputs/khayyam_bruteforce_m_${m[$j]}_sparsity_${sparsity[$j]}_seed_${seed[$i]} --m=${m[$j]} --sparsity=${sparsity[$j]} --seed=${seed[$i]} --gamma=$gamma
   fi
   python -m lib.greedy_heur --output=./outputs/khayyam_heur_m_${m[$j]}_sparsity_${sparsity[$j]}_seed_${seed[$i]} --m=${m[$j]} --sparsity=${sparsity[$j]} --seed=${seed[$i]} --gamma=$gamma --njobs=$njobs
   python -m lib.thres --output=./outputs/khayyam_thres_m_${m[$j]}_sparsity_${sparsity[$j]}_seed_${seed[$i]} --m=${m[$j]} --sparsity=${sparsity[$j]} --seed=${seed[$i]} --gamma=$gamma
