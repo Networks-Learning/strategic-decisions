@@ -30,13 +30,11 @@ def compute_utility(pi_c, p, C, utility):
     u = 0
     br = np.zeros(m, dtype=int)
     for i in range(m):
-        # TODO: Make this part quicker
         z = pi_c - C[i]
         mx_z = np.max(z)
         epsilon=1e-9
         ind = np.where(np.abs(z - mx_z) < epsilon)[0]
         max_util=-2
-        #
         for j in ind:
             if utility[j]>max_util:
                 max_util=utility[j]

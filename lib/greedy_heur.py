@@ -30,13 +30,11 @@ def compute_utility(pi_c, p, C, utility):
     u = 0
     br = np.zeros(m, dtype=int)
     for i in range(m):
-        # TODO: Make this part quicker
         z = pi_c - C[i]
         mx_z = np.max(z)
         epsilon=1e-9
         ind = np.where(np.abs(z - mx_z) < epsilon)[0]
         max_util=-2
-        #
         for j in ind:
             if utility[j]>max_util:
                 max_util=utility[j]
@@ -45,11 +43,18 @@ def compute_utility(pi_c, p, C, utility):
         u += p[i] * mx_val
     return u,br
 
-def marginal(prior_utility, prior_pi, p, C, U, candidate):
+def marginal(matching, prior_utility, prior_pi, p, C, U, candidate):
+    m = prior_pi.size
     policy = prior_pi.copy()
     policy[candidate]=1
-    utility = compute_utility(policy, p, C, U)[0]
-    return candidate, utility - prior_utility
+    u = prior_utility
+    for i in range(m):
+        if 1-C[i,candidate] > prior_pi[matching[i]]-C[i,matching[i]]:
+            u += p[i]*(U[candidate]-prior_pi[matching[i]]*U[matching[i]])
+        elif np.abs(1 - C[i,candidate] - prior_pi[matching[i]] + C[i,matching[i]])<1e-9 and U[candidate]>U[matching[i]]:
+            u += p[i]*(U[candidate]-prior_pi[matching[i]]*U[matching[i]])
+
+    return candidate, u - prior_utility
 
 # Performs one execution of the shifted threshold algorithm on a randomly generated
 # instance given the following parameters as command line arguments.
@@ -72,18 +77,18 @@ def experiment(output, m, seed, sparsity, gamma, kappa, additive, njobs):
         attr["pi"] = np.zeros(m)
     
     start = time.time()
-    best_utility = 0
+    best_utility, matching = compute_utility(attr["pi"], attr["p"], attr["C"], attr["utility"])
     increasing = True
     while increasing:
         max_util_gain=0
-        marginals = Parallel(n_jobs=njobs)(delayed(marginal)(best_utility, attr['pi'], attr['p'], attr['C'], attr['utility'], i)
+        marginals = Parallel(n_jobs=njobs)(delayed(marginal)(matching, best_utility, attr['pi'], attr['p'], attr['C'], attr['utility'], i)
                             for i in range(m) if attr["utility"][i]>=0 and attr["pi"][i]!=1)
         if marginals!=[]:
             max_gainer, max_util_gain = max(marginals, key=lambda x : x[1])
         
         if max_util_gain>0:
             attr["pi"][max_gainer]=1
-            best_utility = compute_utility(attr["pi"], attr["p"], attr["C"], attr["utility"])[0]
+            best_utility, matching = compute_utility(attr["pi"], attr["p"], attr["C"], attr["utility"])
         else:
             u, br = compute_utility(attr["pi"], attr["p"], attr["C"], attr["utility"])
             increasing=False   
@@ -112,18 +117,18 @@ def compute_heur(output, C, U, Px, seed, alpha, indexing, njobs):
     attr["pi"] = np.zeros(m)
 
     start = time.time()
-    best_utility = 0
+    best_utility, matching = compute_utility(attr["pi"], attr["p"], attr["C"], attr["utility"])
     increasing = True
     while increasing:
         max_util_gain=0
-        marginals = Parallel(n_jobs=njobs)(delayed(marginal)(best_utility, attr['pi'], attr['p'], attr['C'], attr['utility'], i)
+        marginals = Parallel(n_jobs=njobs)(delayed(marginal)(matching, best_utility, attr['pi'], attr['p'], attr['C'], attr['utility'], i)
                             for i in range(m) if attr["utility"][i]>=0 and attr["pi"][i]!=1)
         if marginals!=[]:
             max_gainer, max_util_gain = max(marginals, key=lambda x : x[1])
         
         if max_util_gain>0:
             attr["pi"][max_gainer]=1
-            best_utility = compute_utility(attr["pi"], attr["p"], attr["C"], attr["utility"])[0]
+            best_utility, matching = compute_utility(attr["pi"], attr["p"], attr["C"], attr["utility"])
         else:
             u, br = compute_utility(attr["pi"], attr["p"], attr["C"], attr["utility"])
             increasing=False   
