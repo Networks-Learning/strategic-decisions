@@ -77,7 +77,7 @@ def update(k, pi, p, C, utility):
 # Updates the policy value of the kth feature value considering
 # all the critical values and choosing the one that maximizes utility.
 def update_new(k, pi, p, C, utility):
-    # print('Allazw to k='+str(k))
+
     m = pi.size
     pi_c = pi.copy()
     pi_c[k] = 0
@@ -102,10 +102,7 @@ def update_new(k, pi, p, C, utility):
 
     future_shifters=[i for i in range(m) if np.abs(pi_c[previous_br[i]] - C[i,previous_br[i]] + C[i,k])<1e-9 and 
                         previous_br[i]!=k and utility[k] <= utility[previous_br[i]]]
-    # ZOUN_ANAMESA_MAS = [(i, previous_br[i], pi_c[previous_br[i]],C[i,previous_br[i]], pi_c[i],C[i,i]) for i in future_shifters] 
-    # # ZOUN_ANAMESA_MAS = future_shifters
-    # if future_shifters!=[]:
-    #     print(k, future_shifters)
+    
     # Intermediate values
     for v in sorted(list(candidate_values.keys())):
         
