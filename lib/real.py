@@ -7,6 +7,9 @@ from lib.greedy_deter import compute_gd
 from lib.greedy_rand import compute_gr
 from lib.max_cover import compute_maxcov
 from lib.min_cost import compute_mincos
+from lib.iterative import compute_iter
+from lib.thres import compute_thres
+from lib.greedy_heur import compute_heur
 
 class PythonLiteralOption(click.Option):
 
@@ -20,13 +23,14 @@ class PythonLiteralOption(click.Option):
 @click.option('--data', required=True)
 @click.option('--gamma', type=float, required=True)
 @click.option('--alpha',type=float ,required=True)
-@click.option('--k', type=int, required=True)
-@click.option('--seed', type=int, default=1, help="random number for seed.")
-@click.option('--leaking', cls=PythonLiteralOption, default='None', help="probabilities of sampling some other individual")
-@click.option('--njobs', default=1, help="number of parallel threads")
 @click.option('--output', required=True, help="output")
 @click.option('--algo', required=True, help="algorithm to execute")
-def experiment(data, output, seed, gamma, alpha, k, leaking, algo, njobs):
+@click.option('--k', type=int, default=2)
+@click.option('--seed', type=int, default=1, help="random number for seed.")
+@click.option('--leaking', cls=PythonLiteralOption, default='None', help="probabilities of sampling some other individual")
+@click.option('--max_iter', type=int, default=100, help="max iterations for the iterative algorithm")
+@click.option('--njobs', default=1, help="number of parallel threads")
+def experiment(data, output, seed, gamma, alpha, k, leaking, algo, njobs, max_iter):
     """
     Executes one of the algorithms on real data.
 
@@ -78,7 +82,12 @@ def experiment(data, output, seed, gamma, alpha, k, leaking, algo, njobs):
         compute_maxcov(output=output, C=c, U=u, Px=px, k=k, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
     elif algo=="mincos":
         compute_mincos(output=output, C=c, U=u, Px=px, k=k, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
-
+    elif algo=="it":
+        compute_iter(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing, max_iter=max_iter, verbose=False, njobs=njobs)
+    elif algo=="th":
+        compute_thres(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing)
+    elif algo=="gh":
+        compute_heur(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
 
 if __name__ == '__main__':
     experiment()
