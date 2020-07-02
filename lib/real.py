@@ -9,7 +9,7 @@ from lib.max_cover import compute_maxcov
 from lib.min_cost import compute_mincos
 from lib.iterative import compute_iter
 from lib.thres import compute_thres
-from lib.greedy_heur import compute_heur
+# from lib.greedy_heur import compute_heur_compon
 
 class PythonLiteralOption(click.Option):
 
@@ -74,20 +74,20 @@ def experiment(data, output, seed, gamma, alpha, k, leaking, algo, njobs, max_it
     px = px_df.reindex(indexing).to_numpy().flatten()
 
     # Compute
-    if algo=="gd":
+    if algo=="gd": # Greedy deterministic
         compute_gd(output=output, C=c, U=u, Px=px, k=k, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
-    elif algo=="gr":
+    elif algo=="gr": # Greedy randomized
         compute_gr(output=output, C=c, U=u, Px=px, k=k, seed=seed, leaking=leaking, alpha=alpha, indexing=indexing, njobs=njobs)
-    elif algo=="maxcov":
+    elif algo=="maxcov": # Maximum coverage
         compute_maxcov(output=output, C=c, U=u, Px=px, k=k, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
-    elif algo=="mincos":
+    elif algo=="mincos": # Minimum cost
         compute_mincos(output=output, C=c, U=u, Px=px, k=k, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
-    elif algo=="it":
+    elif algo=="it": # Iterative
         compute_iter(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing, max_iter=max_iter, verbose=False, njobs=njobs)
-    elif algo=="th":
-        compute_thres(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing)
-    elif algo=="gh":
-        compute_heur(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
+    elif algo=="th": # Shifted threshold
+        compute_thres(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
+    # elif algo=="gh": # Greedy heuristic
+    #     compute_heur_compon(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
 
 if __name__ == '__main__':
     experiment()

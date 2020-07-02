@@ -5,9 +5,10 @@ import time
 import json as js
 import click
 from joblib import Parallel, delayed
+import networkx as nx
 
 def dump_data(attr, non_strategic, strategic, strategic_deter, time, iterations, pi, pi_non_strategic,
-            pi_strategic_deter, non_strategic_br, strategic_br, strategic_deter_br, alpha=None):
+            pi_strategic_deter, non_strategic_br, strategic_br, strategic_deter_br, components=None, alpha=None):
     out = {
         # Configuration
         "m": attr["m"],
@@ -16,10 +17,12 @@ def dump_data(attr, non_strategic, strategic, strategic_deter, time, iterations,
         "kappa": attr['kappa'],
         "parallel": attr['parallel'],
         "alpha": alpha,
+        "components": components,
         # Execution details
         "strategic": strategic,
         "non_strategic": non_strategic,
         "strategic_deter": strategic_deter,
+        "iterations": iterations,
         "time": time,
         "pi" : pi,
         "pi_non_strategic": pi_non_strategic,
@@ -54,29 +57,6 @@ def compute_utility(pi_c, p, C, utility):
 # Updates the policy value of the kth feature value considering
 # all the critical values and choosing the one that maximizes utility.
 def update(k, pi, p, C, utility):
-    m = pi.size
-    pi_c = pi.copy()
-    pi_c[k] = -np.Inf
-    candidate_values = [0, 1]
-    for i in range(m):
-        candidate_values.append(np.max(pi_c - C[i, :]) + C[i, k])
-    candidate_values = np.unique(candidate_values)
-    candidate_values = candidate_values[(
-        candidate_values >= 0) & (candidate_values <= 1)]
-    best_possible_utility = -np.Inf
-    best_value = None
-    for v in candidate_values:
-        pi_c[k] = v
-        u,br = compute_utility(pi_c, p, C, utility)
-        if u > best_possible_utility:
-            best_possible_utility = u
-            best_value = v
-            best_br=br
-    return [best_value, best_possible_utility, best_br]
-
-# Updates the policy value of the kth feature value considering
-# all the critical values and choosing the one that maximizes utility.
-def update_new(k, pi, p, C, utility):
 
     m = pi.size
     pi_c = pi.copy()
@@ -179,9 +159,8 @@ def experiment(output, m, seed, sparsity, gamma, kappa, additive, max_iter, njob
         attr["pi"] = np.zeros(m)
     
     best_utility = -1.5 
-    iterations = {}
+    iterations = 0
 
-    iter_count = 1
     start = time.time()
     parallel = True if njobs > 1 else False
     attr['parallel'] = parallel
@@ -189,7 +168,7 @@ def experiment(output, m, seed, sparsity, gamma, kappa, additive, max_iter, njob
         any_update = False
         if parallel:
             previous_pi = attr["pi"].copy()
-            results = Parallel(n_jobs=njobs)(delayed(lambda x: update_new(
+            results = Parallel(n_jobs=njobs)(delayed(lambda x: update(
                 x, previous_pi, attr["p"], attr["C"], attr["utility"]))(k) for k in range(m))
             for (pi_k, best_util_k, best_br_k), k in zip(results, list(range(m))):
                 if best_util_k > best_utility:
@@ -199,19 +178,18 @@ def experiment(output, m, seed, sparsity, gamma, kappa, additive, max_iter, njob
                 attr["pi"], attr["p"], attr["C"], attr["utility"])[0]
         else:
             for k in range(m):
-                [best_value, best_possible_utility, best_possible_responses] = update_new(
+                [best_value, best_possible_utility, best_possible_responses] = update(
                     k, attr["pi"], attr["p"], attr["C"], attr["utility"])
                 if best_possible_utility > best_utility:
                     attr["pi"][k] = best_value
                     best_utility = best_possible_utility
                     best_responses = best_possible_responses
                     any_update = True
-        print("Step = " + str(iter_count))
+        print("Step = " + str(iterations+1))
         print("Iteration utility = " + str(best_utility))
-        iterations[iter_count]=best_utility
-        iter_count += 1
+        iterations += 1
 
-        if not any_update or (parallel and iter_count > max_iter):
+        if not any_update or (parallel and iterations >= max_iter):
             end = time.time()
             run_time = end - start
             u,br=compute_utility(attr['pi'],attr['p'],attr['C'],attr['utility'])
@@ -249,28 +227,18 @@ def experiment(output, m, seed, sparsity, gamma, kappa, additive, max_iter, njob
                                     non_strategic_br=non_strategic_br, strategic_br=br,
                                     strategic_deter_br=strategic_deterministic_br)))
 
-# Performs one execution of the iterative algorithm on a given instance
-# based on real data.
-def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=False, njobs=1):
-    
-    # Configuration
-    attr = Configuration.generate_configuration_state(
-        U, C, Px, seed)
-    m = attr["m"]
-    attr["pi"] = np.zeros(m)
+
+# Performs one execution of the iterative algorithm on a connected component
+# of the real data
+def optimize_component(attr, max_iter, parallel, njobs):
 
     best_utility = -1.5 # initial
-    iterations = {} # keys are iterations, values are utilities
-    iter_count = 1
-    parallel = True if njobs > 1 else False
-    attr['parallel'] = parallel
-    
-    start = time.time()
+    iterations = 0
     while True:
         any_update = False
         if parallel:
             previous_pi = attr["pi"].copy()
-            results = Parallel(n_jobs=njobs)(delayed(lambda x: update_new(
+            results = Parallel(n_jobs=njobs)(delayed(lambda x: update(
                 x, previous_pi, attr["p"], attr["C"], attr["utility"]))(k) for k in range(attr['m']))
             for (pi_k, best_util_k, best_br_k), k in zip(results, list(range(attr['m']))):
                 if best_util_k > best_utility:
@@ -280,25 +248,90 @@ def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=F
                 attr["pi"], attr["p"], attr["C"], attr["utility"])[0]
         else:
             for k in range(attr['m']):
-                [best_value, best_possible_utility, best_possible_responses] = update_new(
+                [best_value, best_possible_utility, best_possible_responses] = update(
                     k, attr["pi"], attr["p"], attr["C"], attr["utility"])
                 if best_possible_utility > best_utility:
                     attr["pi"][k] = best_value
                     best_utility = best_possible_utility
                     best_responses = best_possible_responses
                     any_update = True
-        print("Step = " + str(iter_count))
-        print("Iteration utility = " + str(best_utility))
-        iterations[iter_count]=best_utility
-        iter_count += 1
+        iterations += 1
 
-        if not any_update or (parallel and iter_count > max_iter):
-            end = time.time()
-            run_time = end - start
-            u,br=compute_utility(attr['pi'],attr['p'],attr['C'],attr['utility'])
-            print("Iterative RunTime = " + str(run_time))
-            print("Final Utility = " + str(u))
+        if not any_update or (parallel and iterations >= max_iter):
             break
+    
+    attr['iterations']=iterations
+    return attr
+
+# Finds the connected components of the graph and executes the iterative algorithm on each one
+def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=False, njobs=1):
+    
+    # Configuration
+    attr = Configuration.generate_configuration_state(
+        U, C, Px, seed)
+    m = attr["m"]
+    attr["pi"] = np.zeros(m)
+    parallel = True if njobs > 1 else False
+    attr['parallel'] = parallel
+
+    start = time.time()
+    
+    # Create graph based on C
+    G = nx.Graph()
+    G.add_nodes_from(range(m))
+    for i in range(m):
+        for j in range(m):
+            if C[i,j]<=1:
+                G.add_edge(i,j)
+    
+    # Find connected components and create attributes
+    component_attrs = []
+    for component in nx.connected_components(G):
+        m_component = len(component) # Set
+        sorted_component = sorted(component)
+
+        indexing_component = {}
+        U_component = np.zeros(m_component)
+        Px_component = np.zeros(m_component)
+        C_component = np.zeros((m_component, m_component))
+        for ind_i, orig_i in enumerate(sorted_component):
+            indexing_component[ind_i] = orig_i
+            U_component[ind_i] = U[orig_i]
+            Px_component[ind_i] = Px[orig_i]
+            for ind_j, orig_j in enumerate(sorted_component):
+                C_component[ind_i, ind_j] = C[orig_i, orig_j]
+
+        if sum(Px_component)!=0:
+            attr_component = Configuration.generate_configuration_state(
+            U_component, C_component, Px_component, seed)
+            attr_component["pi"] = np.zeros(m_component)
+
+            component_attrs.append((attr_component, indexing_component))
+
+    components = len(component_attrs)
+    # Solve independently for each component (in parallel) and merge results
+    # processed_attrs = Parallel(n_jobs=njobs)(delayed(optimize_component)(attr_component, max_iter) \
+    #             for attr_component, indexing_component in component_attrs)
+
+    # Solve independently for each component
+    processed_attrs = []
+    for attr_component, indexing_component in component_attrs:
+        processed_attrs.append(optimize_component(attr_component, max_iter, parallel, njobs))
+
+    # Merge results and save them
+    for ind_component, processed_attr in enumerate(processed_attrs):
+        indexing_component = component_attrs[ind_component][1]
+        for i in range(processed_attr['m']):
+            attr['pi'][indexing_component[i]] = processed_attr['pi'][i]
+    
+    iterations = np.mean([processed_attr['iterations'] for processed_attr in processed_attrs])
+
+    end = time.time()
+    run_time = end - start
+    u,br=compute_utility(attr['pi'],attr['p'],attr['C'],attr['utility'])
+    print("Iterative RunTime = " + str(run_time))
+    print("Final Utility = " + str(u))
+    
 
     non_strategic_u = attr["utility"].copy()
     non_strategic_u[non_strategic_u < 0] = 0
@@ -343,7 +376,7 @@ def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=F
         strategic_deter_pi[int(real_index)] = pi_strategic_deter[index]
 
     with open(output + '_config.json', "w") as fi:
-        fi.write(js.dumps(dump_data(attr=attr, non_strategic=non_strategic_utility, strategic=best_utility,
+        fi.write(js.dumps(dump_data(attr=attr, non_strategic=non_strategic_utility, strategic=u, components=components,
                                     strategic_deter=strategic_deterministic_utility, time=run_time, iterations=iterations,
                                     pi=pi, pi_non_strategic=non_strategic_pi, pi_strategic_deter=strategic_deter_pi,
                                     non_strategic_br=best_responses_non_strategic, strategic_br=best_responses,
