@@ -197,21 +197,20 @@ def experiment(output, m, seed, sparsity, gamma, kappa, additive, max_iter, njob
             print("Final Utility = " + str(u))
             break
 
-    non_strategic_u = attr["utility"].copy()
-    non_strategic_u[non_strategic_u < 0] = 0
-    pi_non_strategic = non_strategic_u.copy()
-    pi_non_strategic[pi_non_strategic > 0] = 1
+    pi_non_strategic = np.zeros(attr['m'])
+    non_strategic_br = np.arange(attr['m'],dtype=int)
+    non_strategic_utility = 0
+    for i in range(m):
+        if attr['utility'][i]>=0:
+            pi_non_strategic[i]=1
+            non_strategic_utility += attr['p'][i]*attr['utility'][i]
 
-    non_strategic_utility, non_strategic_br = compute_utility(
-        pi_non_strategic, attr["p"], attr["C"], non_strategic_u)
-
-    non_strategic_u[non_strategic_u < 0] = 0
     pi_strategic_deter = attr["pi"].copy()
     pi_strategic_deter[pi_strategic_deter > 0.5] = 1
     pi_strategic_deter[pi_strategic_deter <= 0.5] = 0
 
     strategic_deterministic_utility, strategic_deterministic_br = compute_utility(
-        pi_strategic_deter, attr["p"], attr["C"], non_strategic_u)
+        pi_strategic_deter, attr["p"], attr["C"], attr["utility"])
 
     br = {ind:int(x) for ind,x in enumerate(br)}
     non_strategic_br = {ind:int(x) for ind,x in enumerate(non_strategic_br)}
@@ -333,21 +332,20 @@ def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=F
     print("Final Utility = " + str(u))
     
 
-    non_strategic_u = attr["utility"].copy()
-    non_strategic_u[non_strategic_u < 0] = 0
-    pi_non_strategic = non_strategic_u.copy()
-    pi_non_strategic[pi_non_strategic > 0] = 1
+    pi_non_strategic = np.zeros(attr['m'])
+    non_strategic_br = np.arange(attr['m'],dtype=int)
+    non_strategic_utility = 0
+    for i in range(m):
+        if attr['utility'][i]>=0:
+            pi_non_strategic[i]=1
+            non_strategic_utility += attr['p'][i]*attr['utility'][i]
 
-    non_strategic_utility, non_strategic_br = compute_utility(
-        pi_non_strategic, attr["p"], attr["C"], non_strategic_u)
-
-    non_strategic_u[non_strategic_u < 0] = 0
     pi_strategic_deter = attr["pi"].copy()
     pi_strategic_deter[pi_strategic_deter > 0.5] = 1
     pi_strategic_deter[pi_strategic_deter <= 0.5] = 0
 
     strategic_deterministic_utility, strategic_deterministic_br = compute_utility(
-        pi_strategic_deter, attr["p"], attr["C"], non_strategic_u)
+        pi_strategic_deter, attr["p"], attr["C"], attr["utility"])
 
     # Fix best responses to fit the real indices
     best_responses = {}
