@@ -13,7 +13,6 @@ do
   if [ "$j" -lt "6" ]
   then python -m lib.bruteforce --output=./outputs/khayyam_bruteforce_m_${m[$j]}_sparsity_${sparsity[$j]}_seed_${seed[$i]} --m=${m[$j]} --sparsity=${sparsity[$j]} --seed=${seed[$i]} --gamma=$gamma
   fi
-  # python -m lib.greedy_heur --output=./outputs/khayyam_heur_m_${m[$j]}_sparsity_${sparsity[$j]}_seed_${seed[$i]} --m=${m[$j]} --sparsity=${sparsity[$j]} --seed=${seed[$i]} --gamma=$gamma --njobs=1
   python -m lib.thres --output=./outputs/khayyam_thres_m_${m[$j]}_sparsity_${sparsity[$j]}_seed_${seed[$i]} --m=${m[$j]} --sparsity=${sparsity[$j]} --seed=${seed[$i]} --gamma=$gamma
   python -m lib.iterative --output=./outputs/khayyam_iterative_m_${m[$j]}_sparsity_${sparsity[$j]}_seed_${seed[$i]} --m=${m[$j]} --sparsity=${sparsity[$j]} --seed=${seed[$i]} --gamma=$gamma --njobs=1
   python -m lib.iterative --output=./outputs/khayyam_iterative_parallel_m_${m[$j]}_sparsity_${sparsity[$j]}_seed_${seed[$i]} --m=${m[$j]} --sparsity=${sparsity[$j]} --seed=${seed[$i]} --gamma=$gamma --njobs=$njobs --max_iter=$max_iter
