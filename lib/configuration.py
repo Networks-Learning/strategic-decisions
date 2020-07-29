@@ -12,6 +12,13 @@ def generate_additive_configuration(m, seed, kappa=1, gamma=0.2):
     attr['kappa'] = kappa
     
     attr['degree_of_sparsity'] = -1
+
+    unnormalized_P = np.maximum(np.random.normal(0.5, 0.1, m),0)
+    p = unnormalized_P / sum(unnormalized_P)
+    attr["p"] = p
+    utility = np.array(sorted((np.random.rand(m) - gamma),reverse=True))
+    attr["utility"] = utility
+
     C=np.zeros((m,m))
     C[m-1,:]=np.array(sorted((1/kappa)*np.random.rand(m-1),reverse=True)+[0])
     for i in reversed(range(m-1)):
@@ -22,11 +29,7 @@ def generate_additive_configuration(m, seed, kappa=1, gamma=0.2):
         a = np.where(C[i] <= 1)
         num_movable_nodes.append(np.size(a))
     attr["num_movable_nodes"] = num_movable_nodes
-    unnormalized_P = np.maximum(np.random.normal(0.5, 0.1, m),0)
-    p = unnormalized_P / sum(unnormalized_P)
-    attr["p"] = p
-    utility = np.array(sorted((np.random.rand(m) - gamma),reverse=True))
-    attr["utility"] = utility
+    
     pi = np.zeros(m)
     attr["pi"] = pi
     return attr
@@ -38,6 +41,13 @@ def generate_pi_configuration(m, seed, accepted_percentage, degree_of_sparsity=N
     attr['seed'] = seed
     attr['m'] = m
     num_movable_nodes = []
+
+    unnormalized_P = np.maximum(np.random.normal(0.5, 0.1, m),0)
+    p = unnormalized_P / sum(unnormalized_P)
+    attr["p"] = p
+    utility = np.array(sorted((np.random.rand(m) - gamma),reverse=True))
+    attr["utility"] = utility
+
     C = np.random.rand(m, m)  # all the distances are less than 1
     degree_of_sparsity = m - 1 if degree_of_sparsity is None else degree_of_sparsity
     attr['degree_of_sparsity'] = degree_of_sparsity # number of unreachable feature values
@@ -52,11 +62,6 @@ def generate_pi_configuration(m, seed, accepted_percentage, degree_of_sparsity=N
         a = np.where(C[i] <= 1)
         num_movable_nodes.append(np.size(a))
     attr["num_movable_nodes"] = num_movable_nodes
-    unnormalized_P = np.maximum(np.random.normal(0.5, 0.1, m),0)
-    p = unnormalized_P / sum(unnormalized_P)
-    attr["p"] = p
-    utility = np.array(sorted((np.random.rand(m) - gamma),reverse=True))
-    attr["utility"] = utility
     
     # accepted_percentage = 1 gives the optimal threshold policy in the non-strategic setting
     # accepted_percentage < 1 gives a random outcome monotonic policy
