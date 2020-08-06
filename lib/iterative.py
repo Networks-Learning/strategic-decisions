@@ -16,13 +16,14 @@ def dump_data(attr, non_strategic, strategic, strategic_deter, time, iterations,
         "sparsity": attr['degree_of_sparsity'],
         "kappa": attr['kappa'],
         "parallel": attr['parallel'],
+        "split_components" : attr['split_components'],
         "alpha": alpha,
-        "components": components,
         # Execution details
         "strategic": strategic,
         "non_strategic": non_strategic,
         "strategic_deter": strategic_deter,
         "iterations": iterations,
+        "components": components,
         "time": time,
         "pi" : pi,
         "pi_non_strategic": pi_non_strategic,
@@ -263,7 +264,7 @@ def optimize_component(attr, max_iter, parallel, njobs):
     return attr
 
 # Finds the connected components of the graph and executes the iterative algorithm on each one
-def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=False, njobs=1):
+def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=False, njobs=1, split_components=True):
     
     # Configuration
     attr = Configuration.generate_configuration_state(
@@ -272,59 +273,68 @@ def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=F
     attr["pi"] = np.zeros(m)
     parallel = True if njobs > 1 else False
     attr['parallel'] = parallel
-
+    attr['split_components'] = split_components
     start = time.time()
     
-    # Create graph based on C
-    G = nx.Graph()
-    G.add_nodes_from(range(m))
-    for i in range(m):
-        for j in range(m):
-            if C[i,j]<=1:
-                G.add_edge(i,j)
+    if split_components:
+
+        # Create graph based on C
+        G = nx.Graph()
+        G.add_nodes_from(range(m))
+        for i in range(m):
+            for j in range(m):
+                if C[i,j]<=1:
+                    G.add_edge(i,j)
+        
+        # Find connected components and create attributes
+        component_attrs = []
+        for component in nx.connected_components(G):
+            m_component = len(component) # Set
+            sorted_component = sorted(component)
+
+            indexing_component = {}
+            U_component = np.zeros(m_component)
+            Px_component = np.zeros(m_component)
+            C_component = np.zeros((m_component, m_component))
+            for ind_i, orig_i in enumerate(sorted_component):
+                indexing_component[ind_i] = orig_i
+                U_component[ind_i] = U[orig_i]
+                Px_component[ind_i] = Px[orig_i]
+                for ind_j, orig_j in enumerate(sorted_component):
+                    C_component[ind_i, ind_j] = C[orig_i, orig_j]
+
+            if sum(Px_component)!=0:
+                attr_component = Configuration.generate_configuration_state(
+                U_component, C_component, Px_component, seed)
+                attr_component["pi"] = np.zeros(m_component)
+
+                component_attrs.append((attr_component, indexing_component))
+
+        num_components = len(component_attrs)
+
+        # Solve independently for each component (in parallel) and merge results
+        # processed_attrs = Parallel(n_jobs=njobs)(delayed(optimize_component)(attr_component, max_iter) \
+        #             for attr_component, indexing_component in component_attrs)
+
+        # Solve independently for each component
+        processed_attrs = []
+        for attr_component, indexing_component in component_attrs:
+            processed_attrs.append(optimize_component(attr_component, max_iter, parallel, njobs))
+
+        # Merge results and save them
+        for ind_component, processed_attr in enumerate(processed_attrs):
+            indexing_component = component_attrs[ind_component][1]
+            for i in range(processed_attr['m']):
+                attr['pi'][indexing_component[i]] = processed_attr['pi'][i]
+        
+        iterations = np.mean([processed_attr['iterations'] for processed_attr in processed_attrs])
+
+    else:
+
+        attr = optimize_component(attr, max_iter, parallel, njobs)
+        iterations = attr['iterations']
+        num_components = 1
     
-    # Find connected components and create attributes
-    component_attrs = []
-    for component in nx.connected_components(G):
-        m_component = len(component) # Set
-        sorted_component = sorted(component)
-
-        indexing_component = {}
-        U_component = np.zeros(m_component)
-        Px_component = np.zeros(m_component)
-        C_component = np.zeros((m_component, m_component))
-        for ind_i, orig_i in enumerate(sorted_component):
-            indexing_component[ind_i] = orig_i
-            U_component[ind_i] = U[orig_i]
-            Px_component[ind_i] = Px[orig_i]
-            for ind_j, orig_j in enumerate(sorted_component):
-                C_component[ind_i, ind_j] = C[orig_i, orig_j]
-
-        if sum(Px_component)!=0:
-            attr_component = Configuration.generate_configuration_state(
-            U_component, C_component, Px_component, seed)
-            attr_component["pi"] = np.zeros(m_component)
-
-            component_attrs.append((attr_component, indexing_component))
-
-    components = len(component_attrs)
-    # Solve independently for each component (in parallel) and merge results
-    # processed_attrs = Parallel(n_jobs=njobs)(delayed(optimize_component)(attr_component, max_iter) \
-    #             for attr_component, indexing_component in component_attrs)
-
-    # Solve independently for each component
-    processed_attrs = []
-    for attr_component, indexing_component in component_attrs:
-        processed_attrs.append(optimize_component(attr_component, max_iter, parallel, njobs))
-
-    # Merge results and save them
-    for ind_component, processed_attr in enumerate(processed_attrs):
-        indexing_component = component_attrs[ind_component][1]
-        for i in range(processed_attr['m']):
-            attr['pi'][indexing_component[i]] = processed_attr['pi'][i]
-    
-    iterations = np.mean([processed_attr['iterations'] for processed_attr in processed_attrs])
-
     end = time.time()
     run_time = end - start
     u,br=compute_utility(attr['pi'],attr['p'],attr['C'],attr['utility'])
@@ -374,7 +384,7 @@ def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=F
         strategic_deter_pi[int(real_index)] = pi_strategic_deter[index]
 
     with open(output + '_config.json', "w") as fi:
-        fi.write(js.dumps(dump_data(attr=attr, non_strategic=non_strategic_utility, strategic=u, components=components,
+        fi.write(js.dumps(dump_data(attr=attr, non_strategic=non_strategic_utility, strategic=u, components=num_components,
                                     strategic_deter=strategic_deterministic_utility, time=run_time, iterations=iterations,
                                     pi=pi, pi_non_strategic=non_strategic_pi, pi_strategic_deter=strategic_deter_pi,
                                     non_strategic_br=best_responses_non_strategic, strategic_br=best_responses,

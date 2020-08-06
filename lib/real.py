@@ -83,7 +83,9 @@ def experiment(data, output, seed, gamma, alpha, k, leaking, algo, njobs, max_it
     elif algo=="mincos": # Minimum cost
         compute_mincos(output=output, C=c, U=u, Px=px, k=k, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
     elif algo=="it": # Iterative
-        compute_iter(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing, max_iter=max_iter, verbose=False, njobs=njobs)
+        compute_iter(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing, max_iter=max_iter, verbose=False, njobs=njobs, split_components=False)
+    elif algo=="itc": # Iterative (with components)
+        compute_iter(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing, max_iter=max_iter, verbose=False, njobs=njobs, split_components=True)
     elif algo=="th": # Shifted threshold
         compute_thres(output=output, C=c, U=u, Px=px, seed=seed, alpha=alpha, indexing=indexing, njobs=njobs)
     # elif algo=="gh": # Greedy heuristic
