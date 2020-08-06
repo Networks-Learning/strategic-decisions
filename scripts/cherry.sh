@@ -4,7 +4,7 @@ alpha=(1 2 3.3 5 10)
 dataset=fico
 gamma=0.9746666325676951 # fico
 # gamma=0.8580724846537919 # credit
-max_iter=20
+# max_iter=20
 for s in {1..10}
 do
 for i in {0..4}

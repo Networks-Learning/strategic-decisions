@@ -165,6 +165,7 @@ def experiment(output, m, seed, sparsity, gamma, kappa, additive, max_iter, njob
     start = time.time()
     parallel = True if njobs > 1 else False
     attr['parallel'] = parallel
+    attr['split_components'] = False
     while True:
         any_update = False
         if parallel:
