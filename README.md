@@ -35,8 +35,18 @@ Each of the aforementioned directories contains self-explanatory README files wh
 
 If you use parts of the code/data in this repository for your own research purposes, please consider citing:
 
-    @software{strategic-decisions,
-        author = {Tsirtsis, Stratis and Tabibian, Behzad and Khajehnejad, Moein and Singla, Adish and Sch{\"o}lkopf, Bernhard and Gomez-Rodriguez, Manuel},
-        title = {TitleToBeAddedHere},
-        url = {https://github.com/Networks-Learning/strategic-decisions/},
+    @article{tsirtsis2020decisions,
+        title={Decisions, Counterfactual Explanations and Strategic Behavior},
+        author={Tsirtsis, Stratis and Gomez-Rodriguez, Manuel},
+        journal={arXiv preprint arXiv:2002.04333},
+        year={2020}
+    }
+    
+and
+
+    @article{tabibian2019optimal,
+        title={Optimal decision making under strategic behavior},
+        author={Tabibian, Behzad and Tsirtsis, Stratis and Khajehnejad, Moein and Singla, Adish and Sch{\"o}lkopf, Bernhard and Gomez-Rodriguez, Manuel},
+        journal={arXiv preprint arXiv:1905.09239},
+        year={2019}
     }
