@@ -14,17 +14,17 @@ pip install -r requirements.txt
 
 ## Code organization
 
-The directory **lib** contains the source code of the algorithms described in the papers together with instance generators for synthetic and real data.
+The directory [lib](lib/) contains the source code of the algorithms described in the papers together with instance generators for synthetic and real data.
 
-The directory **scripts** contains bash scripts that use the aforementioned code and pass several parameters required for the various experiments.
+The directory [scripts](scripts/) contains bash scripts that use the aforementioned code and pass several parameters required for the various experiments.
 
-The directory **notebooks** contains jupyter notebooks producing the figures appearing in the paper. Some notebooks use outputs produced by scripts and prior execution of some script is required. The required script can be found inside each notebook.
+The directory [notebooks](notebooks/) contains jupyter notebooks producing the figures appearing in the paper. Some notebooks use outputs produced by scripts and prior execution of some script is required. The required script can be found inside each notebook.
 
-The directory **data** contains the data used in the two papers.
+The directory [data](data/) contains the data used in the two papers.
 
-The directory **figures** is used for saving the figures produced by the notebooks.
+The directory [figures](figures/) is used for saving the figures produced by the notebooks.
 
-The directory **outputs** is used for saving the text outputs produced by the scripts.
+The directory [outputs](outputs/) is used for saving the text outputs produced by the scripts.
 
 Each of the directories **scripts** and **notebooks** is consisted of two sub-directories named **counterfactuals** and **optimal** which contain paper-specific scripts/notebooks and they correspond to *Decisions, Counterfactual Explanations and Strategic Behavior* and *Optimal Decision Making Under Strategic Behavior* respectively. 
 
@@ -33,7 +33,7 @@ Each of the aforementioned directories contains self-explanatory README files wh
 
 ## Citation
 
-If you use parts of the code in this repository for your own research purposes, please consider citing:
+If you use parts of the code/data in this repository for your own research purposes, please consider citing:
 
     @software{strategic-decisions,
         author = {Tsirtsis, Stratis and Tabibian, Behzad and Khajehnejad, Moein and Singla, Adish and Sch{\"o}lkopf, Bernhard and Gomez-Rodriguez, Manuel},
