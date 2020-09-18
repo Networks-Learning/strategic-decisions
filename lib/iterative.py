@@ -115,7 +115,7 @@ def update(k, pi, p, C, utility):
         previous_v=v
         previous_br=br.copy()
 
-    # Special value 1
+    # Special case 1
     pi_c[k] = 1
     u,br = compute_utility(pi_c, p, C, utility)
     if u > best_possible_utility:
@@ -123,17 +123,6 @@ def update(k, pi, p, C, utility):
         best_value = 1
         best_br=br
     
-    ####### SANITY CHECK ########
-    # pi_c[k] = best_value
-    # correct_u,correct_br = compute_utility(pi_c, p, C, utility)
-    # sanity = []
-    # for ind,match in enumerate(correct_br):
-    #     if match!=best_br[ind]:
-    #         sanity.append((ind, pi_c[ind], best_br[ind],match,best_value-C[ind,best_br[ind]],best_value-C[ind,match]))
-    
-    # assert np.array_equal(best_br, correct_br), "OOPS! when searching "+str(k)+" and value "+str(best_value)+" best responses differ as "+str(sanity)+" kai future shifters "+str(ZOUN_ANAMESA_MAS)+" kai candidates "+str(candidate_values)
-    # assert np.abs(best_possible_utility-correct_u)<1e-9, "OOPS! when searching "+str(k)+" and value "+str(best_value)+" utility is  "+str(best_possible_utility)+" and "+str(correct_u)+" and best responses differ as "+str(sanity)+" kai future shifters "+str(ZOUN_ANAMESA_MAS)+" kai candidates "+str(candidate_values)
-    #############################
     
     return [best_value, best_possible_utility, best_br]
 
