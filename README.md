@@ -1,4 +1,4 @@
-# Title to be added here
+# Decisions and Explanations under Strategic Behavior
 
 This repository contains the code and data used in the papers [Decisions, Counterfactual Explanations and Strategic Behavior](https://arxiv.org/abs/2002.04333) and [Optimal Decision Making Under Strategic Behavior](https://arxiv.org/abs/1905.09239).
 
