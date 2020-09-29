@@ -35,10 +35,10 @@ Each of the aforementioned directories contains self-explanatory README files wh
 
 If you use parts of the code/data in this repository for your own research purposes, please consider citing:
 
-    @article{tsirtsis2020decisions,
+    @inproceedings{tsirtsis2020decisions,
         title={Decisions, Counterfactual Explanations and Strategic Behavior},
         author={Tsirtsis, Stratis and Gomez-Rodriguez, Manuel},
-        journal={arXiv preprint arXiv:2002.04333},
+        booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
         year={2020}
     }
     
