@@ -1,5 +1,11 @@
-Optimal accuracy: 0.8042
+Raw optimal accuracy: 0.8058666666666667
+Raw optimal classifier: MLPClassifier(max_iter=500, random_state=42)
+Raw mutual information: 0.013162928357544524
+Optimal accuracy: 0.8048666666666666
 Optimal classifier: LogisticRegression(max_iter=500, random_state=42)
 Optimal k: 100
+Mutual information: 0.04045713771602058
 Total samples: 30000
-Gamma: 0.8580724846537919
+Gamma 0.4: 0.8326266551572056
+Gamma 0.5: 0.8563985631883158
+Gamma 0.6: 0.8719260871092159

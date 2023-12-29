@@ -30,6 +30,7 @@ Each of the directories **scripts** and **notebooks** is consisted of two sub-di
 
 Each of the aforementioned directories contains self-explanatory README files whenever necessary.
 
+**To reproduce the figures presented in the papers, first make sure to refer to the [data README file](data/original/README.md) and the README file in [notebooks/counterfactuals/](notebooks/counterfactuals/README.md) or [notebooks/optimal/](notebooks/optimal/README.md).**
 
 ## Citation
 
@@ -44,9 +45,9 @@ If you use parts of the code/data in this repository for your own research purpo
     
 and
 
-    @article{tabibian2019optimal,
+    @article{tsirtsis2019optimal,
         title={Optimal decision making under strategic behavior},
-        author={Tabibian, Behzad and Tsirtsis, Stratis and Khajehnejad, Moein and Singla, Adish and Sch{\"o}lkopf, Bernhard and Gomez-Rodriguez, Manuel},
+        author={Tsirtsis, Stratis and Tabibian, Behzad and Khajehnejad, Moein and Singla, Adish and Sch{\"o}lkopf, Bernhard and Gomez-Rodriguez, Manuel},
         journal={arXiv preprint arXiv:1905.09239},
         year={2019}
     }

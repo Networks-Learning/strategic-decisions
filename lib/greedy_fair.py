@@ -1,5 +1,5 @@
 import numpy as np
-from lib import configuration as Configuration
+from lib import configuration_counterfactuals as Configuration
 import time
 import json as js
 import click

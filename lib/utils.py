@@ -34,7 +34,7 @@ def latexify(fig_width=None, fig_height=None, columns=1, largeFonts=False, font_
         fig_height = MAX_HEIGHT_INCHES
 
     params = {'backend': 'ps',
-              'text.latex.preamble': ['\\usepackage{gensymb}', '\\usepackage{bm}'],
+              'text.latex.preamble': '\\usepackage{gensymb} \\usepackage{bm}',
               # fontsize for x and y labels (was 10)
               'axes.labelsize': font_scale * 10 if largeFonts else font_scale * 7,
               'axes.titlesize': font_scale * 10 if largeFonts else font_scale * 7,
@@ -45,6 +45,8 @@ def latexify(fig_width=None, fig_height=None, columns=1, largeFonts=False, font_
               'text.usetex': True,
               'figure.figsize': [fig_width, fig_height],
               'font.family': 'serif',
+              'font.serif' : 'Computer Modern',
+              'mathtext.fontset' : 'cm',
               'xtick.minor.size': 0.5,
               'xtick.major.pad': 1.5,
               'xtick.major.size': 1,

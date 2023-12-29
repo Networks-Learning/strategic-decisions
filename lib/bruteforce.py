@@ -1,6 +1,6 @@
 import numpy as np
 
-from lib import configuration as Configuration
+from lib import configuration_optimal as Configuration
 import time
 import click
 import json as js
@@ -110,13 +110,16 @@ def LP(matched, pi, p, utility, C, best_utility_till_now):
 @click.option('--kappa', default=0.2, type=float, help="inverse sparsity of the graph")
 @click.option('--gamma', default=0.2, type=float, help="gamma parameter")
 @click.option('--additive', is_flag=True, default=False, help="if used, it generates additive configuration")
-def experiment(output, m, seed, sparsity, kappa, gamma, additive):
+@click.option('--population', default='normal', type=str, help="method of sampling population values")
+@click.option('--cost_method', default='uniform', type=str, help="method of sampling cost values")
+def experiment(output, m, seed, sparsity, kappa, gamma, additive, population, cost_method):
     if additive:
         attr = Configuration.generate_additive_configuration(
-            m, seed, kappa=kappa, gamma=gamma)
+            m, seed, kappa=kappa, gamma=gamma, population=population, cost_method=cost_method)
+            
     else:
         attr = Configuration.generate_pi_configuration(
-            m, seed, accepted_percentage=1, degree_of_sparsity=sparsity, gamma=gamma)
+            m, seed, accepted_percentage=1, kappa=kappa, gamma=gamma, cost_method=cost_method)
         attr["pi"] = np.zeros(m)
     
     matched = []
@@ -138,3 +141,4 @@ def experiment(output, m, seed, sparsity, kappa, gamma, additive):
 
 if __name__ == '__main__':
     experiment()
+    # experiment(output='test_bf', m=5, seed=545, gamma=0.0, kappa=0.25, sparsity=2, additive=True, population='uniform')

@@ -1,5 +1,5 @@
 import numpy as np
-from lib import configuration as Configuration
+from lib import configuration_optimal as Configuration
 import time
 import json as js
 import click
@@ -66,9 +66,11 @@ def partial_utility(C, u, l, p, utility, policy):
 @click.option('--seed', default=2, help="random number for seed.")
 @click.option('--gamma', default=0.2, type=float, help="gamma parameter")
 @click.option('--kappa', default=0.2, type=float, help="inverse sparsity of the graph")
-def experiment(output, m, seed, gamma, kappa):
+@click.option('--population', default='normal', type=str, help="method of sampling population values")
+@click.option('--cost_method', default='uniform', type=str, help="method of sampling cost values")
+def experiment(output, m, seed, gamma, kappa, population, cost_method):
     attr = Configuration.generate_additive_configuration(
-        m, seed, kappa=kappa, gamma=gamma)
+        m, seed, kappa=kappa, gamma=gamma, population=population, cost_method=cost_method)
 
     start = time.time()
     C=attr['C']
@@ -254,4 +256,5 @@ def experiment(output, m, seed, gamma, kappa):
 
 if __name__ == '__main__':
     experiment()
+    # experiment(output='test_dp', m=5, seed=545, gamma=0.0, kappa=0.25, population='uniform')
 

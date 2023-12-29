@@ -1,6 +1,6 @@
 # Code
 
-In the following tables, short descriptions of each python file are given. **Common** refers to files related to both papers in this repository. The next two tables are paper-specific.
+The following tables contain a short description for each python file. **Common** refers to files related to both papers in this repository.The next two tables are paper-specific.
 
 ## Common
 
@@ -8,7 +8,6 @@ In the following tables, short descriptions of each python file are given. **Com
 |-----------------------|---------------------------------------------------------------|
 | [credit_utils.py](credit_utils.py)  | Preprocesses the credit dataset. |
 | [fico_utils.py](fico_utils.py)   | Preprocesses the lending dataset. |
-| [configuration.py](configuration.py) | Contains instance generation functions. |
 | [utils.py](utils.py) | Contains auxiliary functions. |
 | [real.py](lib/real.py) | Performs one experiment on real data with options about counterfactual explanations / full transparency. |
 
@@ -22,6 +21,7 @@ In the following tables, short descriptions of each python file are given. **Com
 | [greedy_deter.py](greedy_deter.py) | Finds explanations maximizing utility. |
 | [greedy_rand.py](greedy_rand.py) | Finds explanations and a policy maximizing utility. |
 | [greedy_fair.py](greedy_fair.py) | Finds explanations maximizing utility under a matroid constraint. |
+| [configuration_counterfactuals.py](configuration_counterfactuals.py) | Contains instance generation functions. |
 
 ## Optimal Decision Making Under Strategic Behavior
 
@@ -31,3 +31,4 @@ In the following tables, short descriptions of each python file are given. **Com
 | [dp.py](dp.py) | Dynamic programming algorithm for finding a close to optimal policy on additive outcome monotonic instances. |
 | [iterative.py](iterative.py) | Iterative algorithm for approximating the optimal policy. |
 | [thres.py](thres.py) | Iterative algorithm that searches over all threshold policies and picks the one with maximum utility. |
+| [configuration_optimal.py](configuration_optimal.py) | Contains instance generation functions. |

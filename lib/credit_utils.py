@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn import preprocessing
 from sklearn.cluster import KMeans
 from sklearn.model_selection import cross_val_score
+from sklearn.feature_selection import mutual_info_classif
 from scipy import stats
 import click
 import pickle
@@ -16,8 +17,9 @@ from sklearn.tree import DecisionTreeClassifier
 @click.command()
 @click.option('--data', required=True, help="data file")
 @click.option('--output', required=True, help="output file prefix")
+@click.option('--cost_method', type=str, required=True, help="output file prefix")
 @click.option('--njobs', default=1, type=int, help="number of parallel threads")
-def experiment(data, output, njobs):
+def experiment(data, output, cost_method, njobs):
 
     np.random.seed(seed=42)
     # Read data
@@ -45,8 +47,57 @@ def experiment(data, output, njobs):
     min_max_scaler = preprocessing.MinMaxScaler()
     X_scaled = min_max_scaler.fit_transform(X)
 
+    #                                     Here
+    mask = [True, True, True, True, True, False, False, False, False, False, False, False, False, False, False]
+    raw_mutual = np.mean(mutual_info_classif(X_scaled, y, random_state=42, discrete_features=mask))
+
+    # Try several classifiers on the raw features
+    print('Training using raw features...')
+    opt_acc = 0
+
+    # Train a Multi-Layer Perceptron
+    print('MLP')
+    mlp_clf = MLPClassifier(random_state=42, max_iter=500)
+    mlp_scores = cross_val_score(mlp_clf, X_scaled, y, cv=5, n_jobs=njobs, verbose=0)
+    acc = np.mean(mlp_scores)
+    if acc > opt_acc:
+        opt_acc = acc
+        opt_clf = MLPClassifier(random_state=42, max_iter=500)
+
+    # Train a Support Vector Machine
+    print('SVM')
+    svm_clf = svm.SVC(random_state=42)
+    svm_scores = cross_val_score(svm_clf, X_scaled, y, cv=5, n_jobs=njobs, verbose=0)
+    acc = np.mean(svm_scores)
+    if acc > opt_acc:
+        opt_acc = acc
+        opt_clf = svm.SVC(random_state=42)
+
+    # Train a Logistic Regression Classifier
+    print('LR')
+    lr_clf = LogisticRegression(random_state=42, max_iter=500)
+    lr_scores = cross_val_score(lr_clf, X_scaled, y, cv=5, n_jobs=njobs, verbose=0)
+    acc = np.mean(lr_scores)
+    if acc > opt_acc:
+        opt_acc = acc
+        opt_clf = LogisticRegression(random_state=42, max_iter=500)
+
+    # Train a Decision Tree
+    print('DT')
+    dt_clf = DecisionTreeClassifier(random_state=42)
+    dt_scores = cross_val_score(dt_clf, X_scaled, y, cv=5, n_jobs=njobs, verbose=0)
+    acc = np.mean(dt_scores)
+    if acc > opt_acc:
+        opt_acc = acc
+        opt_clf = DecisionTreeClassifier(random_state=42)
+
+    opt_raw_acc = opt_acc
+    opt_raw_clf = opt_clf
+    print('Optimal accuracy: ' + str(opt_raw_acc))
+    print('Optimal classifier: ' + str(opt_raw_clf))
+
     # Try several classifiers and numbers of clusters
-    print('Cross validation...')
+    print('Training using cluster identifiers...')
     X_numerical = X_scaled[:,6:]
     opt_acc = 0
     k_values = [5, 10, 20, 50, 100, 200]
@@ -68,7 +119,7 @@ def experiment(data, output, njobs):
         # Train a Multi-Layer Perceptron
         print(' '.join(['MLP with k',str(k)]))
         mlp_clf = MLPClassifier(random_state=42, max_iter=500)
-        mlp_scores = cross_val_score(mlp_clf, X_summ, y, cv=5, n_jobs=5, verbose=0)
+        mlp_scores = cross_val_score(mlp_clf, X_summ, y, cv=5, n_jobs=njobs, verbose=0)
         acc = np.mean(mlp_scores)
         if acc > opt_acc:
             opt_acc = acc
@@ -77,7 +128,7 @@ def experiment(data, output, njobs):
         # Train a Support Vector Machine
         print(' '.join(['SVM with k',str(k)]))
         svm_clf = svm.SVC(random_state=42)
-        svm_scores = cross_val_score(svm_clf, X_summ, y, cv=5, n_jobs=5, verbose=0)
+        svm_scores = cross_val_score(svm_clf, X_summ, y, cv=5, n_jobs=njobs, verbose=0)
         acc = np.mean(svm_scores)
         if acc > opt_acc:
             opt_acc = acc
@@ -86,7 +137,7 @@ def experiment(data, output, njobs):
         # Train a Logistic Regression Classifier
         print(' '.join(['LR with k',str(k)]))
         lr_clf = LogisticRegression(random_state=42, max_iter=500)
-        lr_scores = cross_val_score(lr_clf, X_summ, y, cv=5, n_jobs=5, verbose=0)
+        lr_scores = cross_val_score(lr_clf, X_summ, y, cv=5, n_jobs=njobs, verbose=0)
         acc = np.mean(lr_scores)
         if acc > opt_acc:
             opt_acc = acc
@@ -95,14 +146,14 @@ def experiment(data, output, njobs):
         # Train a Decision Tree
         print(' '.join(['DT with k',str(k)]))
         dt_clf = DecisionTreeClassifier(random_state=42)
-        dt_scores = cross_val_score(dt_clf, X_summ, y, cv=5, n_jobs=5, verbose=0)
+        dt_scores = cross_val_score(dt_clf, X_summ, y, cv=5, n_jobs=njobs, verbose=0)
         acc = np.mean(dt_scores)
         if acc > opt_acc:
             opt_acc = acc
             opt_k_clf = (k, DecisionTreeClassifier(random_state=42))
 
 
-    # opt_k, opt_clf, opt_acc = (100, LogisticRegression(random_state=42, max_iter=500), 0.8042) # HELPER
+    # opt_k, opt_clf, opt_acc = (100, LogisticRegression(random_state=42, max_iter=500), 0.8049) # HELPER
     opt_k, opt_clf = opt_k_clf
     print('Optimal accuracy: ' + str(opt_acc))
     print('Optimal classifier: ' + str(opt_clf))
@@ -114,9 +165,25 @@ def experiment(data, output, njobs):
     enc = preprocessing.OneHotEncoder(sparse=False)
     cats = enc.fit_transform(kmeans.labels_.reshape(-1,1))
     X_summ = np.zeros((X_scaled.shape[0], 6+opt_k))
+    X_restored = np.zeros((X_scaled.shape[0], X_scaled.shape[1]))
+    X_restored_scaled_back = np.zeros((X_scaled.shape[0], X_scaled.shape[1]))
     for ind, x in enumerate(X_scaled):
         X_summ[ind,:6] = X_scaled[ind,:6]
         X_summ[ind,6:] = cats[ind]
+
+        X_restored[ind,:6] = X_scaled[ind,:6]
+        cluster_center = kmeans.cluster_centers_[kmeans.labels_[ind]]
+        cluster_center = np.array([max(0,x) for x in cluster_center])
+        cluster_center = np.array([min(1,x) for x in cluster_center]) 
+        X_restored[ind,6:] = cluster_center
+        inverse_vector = np.rint(min_max_scaler.inverse_transform(X_restored[ind].reshape(1,-1))[0])
+        # sanity check
+        if inverse_vector[-2] == 0:
+            inverse_vector[-1] = 0
+        
+        X_restored_scaled_back[ind] = inverse_vector
+    
+    final_mutual = np.mean(mutual_info_classif(X_restored, y, random_state=42, discrete_features=mask))
 
     if os.path.isfile(output + '_clf.pk'):
         # Load classifier if already trained
@@ -181,13 +248,29 @@ def experiment(data, output, njobs):
     for i_group_id in list(feature_groups):
         feature_groups[i_group_id]['Population'] /= X_summ.shape[0]
 
-    # Compute gamma (50th percentile of all individual P(y|x) values -- half population accepted by threshold)
+    # Compute gammas (40th - 50th - 60th percentiles of all individual P(y|x) values)
     probs = [(feature_groups[group_id]['Probability'],feature_groups[group_id]['Population']) for group_id in feature_groups]
     probs = sorted(probs, key=lambda  x: x[0])
     cumulative_population = 0
     for prob, pop in probs:
+        if cumulative_population>=0.4:
+            gamma_04=prob
+            break
+        else:
+            cumulative_population+=pop
+    
+    cumulative_population = 0
+    for prob, pop in probs:
         if cumulative_population>=0.5:
-            gamma=prob
+            gamma_05=prob
+            break
+        else:
+            cumulative_population+=pop
+    
+    cumulative_population = 0
+    for prob, pop in probs:
+        if cumulative_population>=0.6:
+            gamma_06=prob
             break
         else:
             cumulative_population+=pop
@@ -195,9 +278,9 @@ def experiment(data, output, njobs):
 
     # Compute cost function
     m = len(feature_groups)
-    cost = np.full((m,m), fill_value=2.0) # set unreachable states' cost to 2 (>1)
+    cost = np.full((m,m), fill_value=100000.0) # set unreachable states' cost to 100000 (large float >1)
     centroids = np.array([x['Natural vector'] for x in list(feature_groups.values())])
-    centroid_cost = np.full((opt_k, opt_k), 2.0)
+    centroid_cost = np.full((opt_k, opt_k), 100000.0)
 
     # Cost depending on the numerical values
     for i_cluster in range(opt_k):
@@ -206,15 +289,28 @@ def experiment(data, output, njobs):
             j_vector = feature_groups[(0,0,0,j_cluster)]['Natural vector']
             # History of overdue payments can only increase
             if i_vector[-2] <= j_vector[-2] and i_vector[-1] <= j_vector[-1]:
-                # Maximum percentile shift among all numerical features
-                max_percentile = -1
-                for k in range(3,12):
-                    i_percentile = stats.percentileofscore(centroids[:,k], i_vector[k])/100
-                    j_percentile = stats.percentileofscore(centroids[:,k], j_vector[k])/100
-                    if np.abs(i_percentile - j_percentile) > max_percentile:
-                        max_percentile = np.abs(i_percentile - j_percentile)
-                centroid_cost[i_cluster, j_cluster] = max_percentile
+                
+                if cost_method == 'max_percentile_shift':
+                    # Maximum percentile shift among all numerical features
+                    max_percentile = -1
+                    for k in range(3,12):
+                        i_percentile = stats.percentileofscore(X_restored_scaled_back[:,k+3], i_vector[k])/100
+                        j_percentile = stats.percentileofscore(X_restored_scaled_back[:,k+3], j_vector[k])/100
+                        # i_percentile = stats.percentileofscore(centroids[:,k], i_vector[k])/100
+                        # j_percentile = stats.percentileofscore(centroids[:,k], j_vector[k])/100
+                        if np.abs(i_percentile - j_percentile) > max_percentile:
+                            max_percentile = np.abs(i_percentile - j_percentile)
+                    centroid_cost[i_cluster, j_cluster] = max_percentile
+                elif cost_method == 'euclidean':
+                    # Euclidean distance computed using the (scaled) numerical features
+                    i_vector_scaled = min_max_scaler.transform(np.concatenate((np.zeros(6), i_vector[3:]), axis=0).reshape(1, -1))[0]
+                    j_vector_scaled = min_max_scaler.transform(np.concatenate((np.zeros(6), j_vector[3:]), axis=0).reshape(1, -1))[0]
+                    dist = np.linalg.norm(np.subtract(i_vector_scaled[6:], j_vector_scaled[6:]))
+                    centroid_cost[i_cluster, j_cluster] = dist
     
+    C_max = np.max([x for x in centroid_cost.flatten() if x<100000.0])
+    centroid_cost /= C_max
+
     # Pairwise cost depending on categorical features and cluster id
     for i_group, i_group_id in enumerate(list(feature_groups)):
         for j_group, j_group_id in enumerate(list(feature_groups)):
@@ -226,14 +322,20 @@ def experiment(data, output, njobs):
 
     # Store summary
     with open(output+'_summary.txt','w') as f:
+        f.write('Raw optimal accuracy: ' + str(opt_raw_acc) + '\n')
+        f.write('Raw optimal classifier: ' + str(opt_raw_clf) + '\n')
+        f.write('Raw mutual information: ' + str(raw_mutual) + '\n')
         f.write('Optimal accuracy: ' + str(opt_acc) + '\n')
         f.write('Optimal classifier: ' + str(opt_clf) + '\n')
         f.write('Optimal k: ' + str(opt_k) + '\n')
+        f.write('Mutual information: ' + str(final_mutual) + '\n')
         f.write('Total samples: ' + str(X_scaled.shape[0]) + '\n')
-        f.write('Gamma: ' + str(gamma) + '\n')
+        f.write('Gamma 0.4: ' + str(gamma_04) + '\n')
+        f.write('Gamma 0.5: ' + str(gamma_05) + '\n')
+        f.write('Gamma 0.6: ' + str(gamma_06) + '\n')
 
     # Store pairwise costs 
-    with open(output+'_cost.csv','w') as f:
+    with open(output+'_cost_' + cost_method + '.csv','w') as f:
         f.write(',')
         f.write(','.join([str(x) for x in range(m)]))
         f.write('\n')
@@ -266,3 +368,5 @@ def experiment(data, output, njobs):
 
 if __name__ == '__main__':
     experiment()
+    # experiment(data='/Users/stratis/Documents/code/man-sci-code/data/original/credit_processed.csv', 
+    #             cost_method='euclidean', output='data/processed/credit', njobs=5)

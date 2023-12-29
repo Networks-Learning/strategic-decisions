@@ -215,7 +215,7 @@ def experiment(data, output, njobs):
         f.write('Gamma: ' + str(gamma) + '\n')
 
     # Store pairwise costs 
-    with open(output+'_cost.csv','w') as f:
+    with open(output+'_cost_max_percentile_shift.csv','w') as f:
         f.write(',')
         f.write(','.join([str(x) for x in range(m)]))
         f.write('\n')

@@ -1,14 +1,15 @@
 import numpy as np
 
-from lib import configuration as Configuration
+from lib import configuration_optimal as Configuration
 import time
 import json as js
 import click
 from joblib import Parallel, delayed
 import networkx as nx
+import scipy
 
 def dump_data(attr, non_strategic, strategic, strategic_deter, time, iterations, pi, pi_non_strategic,
-            pi_strategic_deter, non_strategic_br, strategic_br, strategic_deter_br, components=None, alpha=None):
+            pi_strategic_deter, non_strategic_br, strategic_br, strategic_deter_br, components=None, alpha=None, confounding=None):
     out = {
         # Configuration
         "m": attr["m"],
@@ -18,6 +19,7 @@ def dump_data(attr, non_strategic, strategic, strategic_deter, time, iterations,
         "parallel": attr['parallel'],
         "split_components" : attr['split_components'],
         "alpha": alpha,
+        "confounding": confounding,
         # Execution details
         "strategic": strategic,
         "non_strategic": non_strategic,
@@ -37,7 +39,7 @@ def dump_data(attr, non_strategic, strategic, strategic_deter, time, iterations,
 
 # Computes the utility of a given policy and the best-response
 # of the individuals of each feature value.
-def compute_utility(pi_c, p, C, utility):
+def compute_utility(pi_c, p, C, utility, confounding=0.0):
     m = pi_c.size
     u = 0
     br = np.zeros(m, dtype=int)
@@ -52,7 +54,23 @@ def compute_utility(pi_c, p, C, utility):
                 max_util=utility[j]
                 mx_val=pi_c[j] * utility[j]
                 br[i]=j
-        u += p[i] * mx_val
+        if confounding == 0:
+            u += p[i] * mx_val
+        elif confounding == 1:
+            u += p[i] * pi_c[br[i]] * utility[i]
+        else:
+            if confounding == 0.5:
+                dist = scipy.stats.beta(1.5, 1.5)
+            elif confounding < 0.5:
+                alpha = 1.5
+                beta = (1 - 2 * confounding) * 0.1 + 2 * confounding * 1.5
+                dist = scipy.stats.beta(alpha, beta)
+            elif confounding > 0.5:
+                alpha = (2 * confounding - 1) * 0.1 + (2 - 2 * confounding) * 1.5
+                beta = 1.5
+                dist = scipy.stats.beta(alpha, beta)
+            beta_sample = dist.rvs()
+            u += p[i] * pi_c[br[i]] * (utility[br[j]]*beta_sample + utility[i]*(1-beta_sample))
     return u,br
 
 # Updates the policy value of the kth feature value considering
@@ -139,13 +157,14 @@ def update(k, pi, p, C, utility):
 @click.option('--kappa', default=0.2, type=float, help="inverse sparsity of the graph")
 @click.option('--gamma', default=0.2, type=float, help="gamma parameter")
 @click.option('--additive', is_flag=True, default=False, help="if used, it generates additive configuration")
-def experiment(output, m, seed, sparsity, gamma, kappa, additive, max_iter, njobs):
+@click.option('--cost_method', default='uniform', type=str, help="method of sampling cost values")
+def experiment(output, m, seed, sparsity, gamma, kappa, additive, max_iter, njobs, cost_method):
     if additive:
         attr = Configuration.generate_additive_configuration(
-            m, seed, kappa=kappa, gamma=gamma)
+            m, seed, kappa=kappa, gamma=gamma, cost_method=cost_method)
     else:
         attr = Configuration.generate_pi_configuration(
-            m, seed, accepted_percentage=1, degree_of_sparsity=sparsity, gamma=gamma)
+            m, seed, accepted_percentage=1, kappa=kappa, gamma=gamma, cost_method=cost_method)
         attr["pi"] = np.zeros(m)
     
     best_utility = -1.5 
@@ -254,7 +273,7 @@ def optimize_component(attr, max_iter, parallel, njobs):
     return attr
 
 # Finds the connected components of the graph and executes the iterative algorithm on each one
-def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=False, njobs=1, split_components=True):
+def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=False, njobs=1, split_components=True, U_real=None, C_real=None, confounding=0.0):
     
     # Configuration
     attr = Configuration.generate_configuration_state(
@@ -327,7 +346,11 @@ def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=F
     
     end = time.time()
     run_time = end - start
-    u,br=compute_utility(attr['pi'],attr['p'],attr['C'],attr['utility'])
+    if U_real is not None and C_real is not None:
+        u,br=compute_utility(attr['pi'],attr['p'],C_real,U_real)
+    else:
+        np.random.seed(seed)
+        u,br=compute_utility(attr['pi'],attr['p'],attr['C'],attr['utility'], confounding=confounding)
     print("Iterative RunTime = " + str(run_time))
     print("Final Utility = " + str(u))
     
@@ -336,10 +359,17 @@ def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=F
     non_strategic_br = np.arange(attr['m'],dtype=int)
     non_strategic_utility = 0
     for i in range(m):
-        if attr['utility'][i]>=0:
-            pi_non_strategic[i]=1
-            non_strategic_utility += attr['p'][i]*attr['utility'][i]
-
+        if U_real is not None and C_real is not None:
+            if U_real[i]>=0:
+                pi_non_strategic[i]=1
+                non_strategic_utility += attr['p'][i]*U_real[i]
+        else:
+            if attr['utility'][i]>=0:
+                pi_non_strategic[i]=1
+                non_strategic_utility += attr['p'][i]*attr['utility'][i]
+    
+    print("Non-Strategic Utility = " + str(non_strategic_utility))
+    
     pi_strategic_deter = attr["pi"].copy()
     pi_strategic_deter[pi_strategic_deter > 0.5] = 1
     pi_strategic_deter[pi_strategic_deter <= 0.5] = 0
@@ -378,7 +408,7 @@ def compute_iter(output, C, U, Px, seed, alpha, indexing, max_iter=20, verbose=F
                                     strategic_deter=strategic_deterministic_utility, time=run_time, iterations=iterations,
                                     pi=pi, pi_non_strategic=non_strategic_pi, pi_strategic_deter=strategic_deter_pi,
                                     non_strategic_br=best_responses_non_strategic, strategic_br=best_responses,
-                                    strategic_deter_br=best_responses_strategic_deterministic, alpha=alpha)))
+                                    strategic_deter_br=best_responses_strategic_deterministic, alpha=alpha, confounding=confounding)))
 
     return attr
 

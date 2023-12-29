@@ -1,1 +1,1 @@
-python -m lib.credit_utils  --data=data/original/credit_processed.csv  --output=data/processed/credit --njobs=5
+python -m lib.credit_utils  --data=data/original/credit_processed.csv  --output=data/processed/credit --cost_method=euclidean --njobs=5

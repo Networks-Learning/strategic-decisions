@@ -1,13 +1,14 @@
 import numpy as np
 
-from lib import configuration as Configuration
+from lib import configuration_optimal as Configuration
 import time
 import json as js
 import click
 from joblib import Parallel, delayed
 import networkx as nx
+import scipy
 
-def dump_data(attr, strategic_threshold, time, pi, strategic_threshold_br, alpha=None):
+def dump_data(attr, strategic_threshold, time, pi, strategic_threshold_br, alpha=None, confounding=None):
     out = {
         # Configuration
         "m": attr["m"],
@@ -15,6 +16,7 @@ def dump_data(attr, strategic_threshold, time, pi, strategic_threshold_br, alpha
         "sparsity": attr['degree_of_sparsity'],
         "kappa": attr['kappa'],
         "alpha": alpha,
+        "confounding": confounding,
         # Execution details
         "strategic_threshold": strategic_threshold,
         "time": time,
@@ -26,7 +28,7 @@ def dump_data(attr, strategic_threshold, time, pi, strategic_threshold_br, alpha
 
 # Computes the utility of a given policy and the best-response
 # of the individuals of each feature value.
-def compute_utility(pi_c, p, C, utility):
+def compute_utility(pi_c, p, C, utility, confounding=0.0):
     m = pi_c.size
     u = 0
     br = np.zeros(m, dtype=int)
@@ -41,7 +43,23 @@ def compute_utility(pi_c, p, C, utility):
                 max_util=utility[j]
                 mx_val=pi_c[j] * utility[j]
                 br[i]=j
-        u += p[i] * mx_val
+        if confounding == 0:
+            u += p[i] * mx_val
+        elif confounding == 1:
+            u += p[i] * pi_c[br[i]] * utility[i]
+        else:
+            if confounding == 0.5:
+                dist = scipy.stats.beta(1.5, 1.5)
+            elif confounding < 0.5:
+                alpha = 1.5
+                beta = (1 - 2 * confounding) * 0.1 + 2 * confounding * 1.5
+                dist = scipy.stats.beta(alpha, beta)
+            elif confounding > 0.5:
+                alpha = (2 * confounding - 1) * 0.1 + (2 - 2 * confounding) * 1.5
+                beta = 1.5
+                dist = scipy.stats.beta(alpha, beta)
+            beta_sample = dist.rvs()
+            u += p[i] * pi_c[br[i]] * (utility[br[j]]*beta_sample + utility[i]*(1-beta_sample))
     return u,br
 
 def marginal(matching, prior_utility, prior_pi, p, C, U, candidate):
@@ -70,13 +88,14 @@ def marginal(matching, prior_utility, prior_pi, p, C, U, candidate):
 @click.option('--kappa', default=0.2, type=float, help="inverse sparsity of the graph")
 @click.option('--gamma', default=0.2, type=float, help="gamma parameter")
 @click.option('--additive', is_flag=True, default=False, help="if used, it generates additive configuration")
-def experiment(output, m, seed, sparsity, gamma, kappa, additive):
+@click.option('--cost_method', default='uniform', type=str, help="method of sampling cost values")
+def experiment(output, m, seed, sparsity, gamma, kappa, additive, cost_method):
     if additive:
         attr = Configuration.generate_additive_configuration(
-            m, seed, kappa=kappa, gamma=gamma)
+            m, seed, kappa=kappa, gamma=gamma, cost_method=cost_method)
     else:
         attr = Configuration.generate_pi_configuration(
-            m, seed, accepted_percentage=1, degree_of_sparsity=sparsity, gamma=gamma)
+            m, seed, accepted_percentage=1, kappa=kappa, gamma=gamma, cost_method=cost_method)
         attr["pi"] = np.zeros(m)
     
     start = time.time()
@@ -114,7 +133,7 @@ def experiment(output, m, seed, sparsity, gamma, kappa, additive):
 
 # Performs one execution of the iterative algorithm on a given instance
 # based on real data.
-def compute_thres(output, C, U, Px, seed, alpha, indexing, njobs):
+def compute_thres(output, C, U, Px, seed, alpha, indexing, njobs, U_real=None, C_real=None, confounding=0.0):
     
     # Configuration
     attr = Configuration.generate_configuration_state(
@@ -143,7 +162,11 @@ def compute_thres(output, C, U, Px, seed, alpha, indexing, njobs):
         if attr["utility"][i]>=0 and i<=best_lim:
             attr["pi"][i]=1
 
-    u,br = compute_utility(attr["pi"], attr["p"], attr["C"], attr["utility"])
+    if U_real is not None and C_real is not None:
+        u,br=compute_utility(attr['pi'],attr['p'],C_real,U_real)
+    else:
+        np.random.seed(seed)
+        u,br=compute_utility(attr['pi'],attr['p'],attr['C'],attr['utility'], confounding=confounding)
     
     print("Threshold RunTime = " + str(run_time))
     print("Final Utility = " + str(u))
@@ -160,7 +183,7 @@ def compute_thres(output, C, U, Px, seed, alpha, indexing, njobs):
     
     with open(output + '_config.json', "w") as fi:
         fi.write(js.dumps(dump_data(attr=attr, strategic_threshold=u, time=run_time,
-                                    pi=pi, strategic_threshold_br=best_responses, alpha=alpha)))
+                                    pi=pi, strategic_threshold_br=best_responses, alpha=alpha, confounding=confounding)))
 
     return attr
 
