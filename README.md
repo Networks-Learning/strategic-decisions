@@ -45,9 +45,9 @@ If you use parts of the code/data in this repository for your own research purpo
     
 and
 
-    @article{tsirtsis2019optimal,
+    @article{tsirtsis2024optimal,
         title={Optimal decision making under strategic behavior},
         author={Tsirtsis, Stratis and Tabibian, Behzad and Khajehnejad, Moein and Singla, Adish and Sch{\"o}lkopf, Bernhard and Gomez-Rodriguez, Manuel},
-        journal={arXiv preprint arXiv:1905.09239},
-        year={2019}
+        journal={Management Science},
+        year={2024}
     }
