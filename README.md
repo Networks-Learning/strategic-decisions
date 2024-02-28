@@ -1,6 +1,6 @@
 # Decisions and Explanations under Strategic Behavior
 
-This repository contains the code and data used in the papers [Decisions, Counterfactual Explanations and Strategic Behavior](https://arxiv.org/abs/2002.04333) and [Optimal Decision Making Under Strategic Behavior]([https://arxiv.org/abs/1905.09239](https://pubsonline.informs.org/doi/full/10.1287/mnsc.2021.02567)).
+This repository contains the code and data used in the papers [Decisions, Counterfactual Explanations and Strategic Behavior](https://arxiv.org/abs/2002.04333) and [Optimal Decision Making Under Strategic Behavior](https://pubsonline.informs.org/doi/full/10.1287/mnsc.2021.02567).
 
 ## Dependencies
 
